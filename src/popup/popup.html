@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../styles/reset.css">
+  <link rel="stylesheet" href="popup.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">🎯</span>
+        <div class="logo-text">
+          <h1>Sales Coach</h1>
+          <span class="tagline">AI-Powered Assistance</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Provider Section -->
+    <section class="card">
+      <div class="section-header">
+        <span class="section-icon">🤖</span>
+        <h2>AI Provider</h2>
+      </div>
+
+      <div class="form-group">
+        <label>Select Provider</label>
+        <div class="select-wrapper">
+          <select id="provider">
+            <option value="pollinations">🆓 Pollinations (Free)</option>
+            <option value="openai">OpenAI</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="groq">Groq</option>
+          </select>
+          <span class="select-arrow">▼</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Model</label>
+        <div class="select-wrapper">
+          <select id="model"></select>
+          <span class="select-arrow">▼</span>
+        </div>
+      </div>
+
+      <div id="apiKeySection" class="form-group">
+        <label>API Key</label>
+        <div class="input-wrapper">
+          <input type="password" id="apiKey" placeholder="Enter your API key..." />
+          <button type="button" id="toggleKey" class="toggle-btn" title="Show/Hide">👁️</button>
+        </div>
+        <small id="keyHint" class="hint"></small>
+      </div>
+
+      <button id="testBtn" class="btn btn-outline">
+        <span class="btn-icon">🔌</span>
+        <span>Test Connection</span>
+      </button>
+    </section>
+
+    <!-- Coaching Settings -->
+    <section class="card">
+      <div class="section-header">
+        <span class="section-icon">⚙️</span>
+        <h2>Coaching Settings</h2>
+      </div>
+
+      <div class="form-group">
+        <label>Base Prompt</label>
+        <textarea id="prompt" rows="3" placeholder="Describe your coaching style..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Response Tone</label>
+        <div class="tone-selector">
+          <input type="radio" name="tone" id="tone-direct" value="Direct" checked>
+          <label for="tone-direct" class="tone-option">
+            <span class="tone-icon">⚡</span>
+            <span>Direct</span>
+          </label>
+
+          <input type="radio" name="tone" id="tone-friendly" value="Friendly">
+          <label for="tone-friendly" class="tone-option">
+            <span class="tone-icon">😊</span>
+            <span>Friendly</span>
+          </label>
+
+          <input type="radio" name="tone" id="tone-consultative" value="Consultative">
+          <label for="tone-consultative" class="tone-option">
+            <span class="tone-icon">🎓</span>
+            <span>Expert</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Knowledge Base (RAG) -->
+    <section class="card">
+      <div class="section-header">
+        <span class="section-icon">📚</span>
+        <h2>Knowledge Base</h2>
+        <label class="toggle-switch">
+          <input type="checkbox" id="ragEnabled" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div id="ragStatus" class="rag-status">
+        <span class="rag-dot"></span>
+        <span id="ragStatusText">Checking server...</span>
+      </div>
+
+      <div class="form-group">
+        <label>Document Title</label>
+        <input type="text" id="docTitle" placeholder="e.g., Product Pricing Guide" />
+      </div>
+
+      <div class="form-group">
+        <label>Document Content</label>
+        <textarea id="docContent" rows="4" placeholder="Paste your sales scripts, FAQs, or product info..."></textarea>
+      </div>
+
+      <div class="upload-section">
+        <input type="file" id="fileInput" accept=".txt,.md,.pdf,.docx,.pptx" hidden>
+        <button id="uploadBtn" class="btn btn-ghost">
+          <span class="btn-icon">📁</span>
+          <span>Upload File</span>
+        </button>
+        <span id="fileName" class="file-name"></span>
+      </div>
+
+      <button id="addDocBtn" class="btn btn-outline">
+        <span class="btn-icon">➕</span>
+        <span>Add to Knowledge Base</span>
+      </button>
+
+      <div class="doc-list">
+        <label>Stored Documents (<span id="docCount">0</span>)</label>
+        <div id="docList" class="doc-items"></div>
+      </div>
+    </section>
+
+    <!-- Status & Actions -->
+    <div id="status" class="status"></div>
+
+    <button id="saveBtn" class="btn btn-primary">
+      <span class="btn-icon">💾</span>
+      <span>Save Settings</span>
+    </button>
+
+    <footer class="footer">
+      <span>v1.0.0</span>
+      <span class="divider">•</span>
+      <span id="connectionStatus" class="connection-indicator">
+        <span class="dot"></span>
+        <span>Ready</span>
+      </span>
+    </footer>
+  </div>
+
+  <script src="../utils/constants.js"></script>
+  <script src="../utils/storage.js"></script>
+  <script src="popup.js"></script>
+</body>
+
+</html>

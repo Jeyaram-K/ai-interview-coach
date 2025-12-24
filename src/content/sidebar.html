@@ -1,0 +1,63 @@
+<!-- src/content/sidebar.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+</head>
+
+<body>
+
+  <!-- 1. The Floating Button -->
+  <button id="sc-launcher" class="sc-launcher-btn" title="Open Sales Coach">
+    🎯
+  </button>
+
+  <!-- 2. The Popup Widget -->
+  <div id="sc-widget" class="sc-widget">
+    <!-- Draggable Header -->
+    <div class="sc-header" id="sc-drag-handle">
+      <div class="sc-header-title">
+        <span class="sc-logo">🎯</span>
+        <span>Sales Coach</span>
+      </div>
+      <div class="sc-header-controls">
+        <button id="sc-clear" title="Clear History">🗑️</button>
+        <button id="sc-minimize" title="Minimize">─</button>
+        <button id="sc-close" title="Close">✕</button>
+      </div>
+    </div>
+
+    <!-- Resize Handle Indicator -->
+    <div class="sc-drag-indicator">
+      <span>⋮⋮</span>
+    </div>
+
+    <!-- Content Area -->
+    <div id="sc-history" class="sc-content">
+      <div class="sc-placeholder">
+        <div class="sc-placeholder-icon">💬</div>
+        <div class="sc-placeholder-text">Ready to assist</div>
+        <div class="sc-placeholder-hint">Drag header to move • Click below for help</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="sc-footer">
+      <button id="sc-trigger-btn" class="sc-btn-primary">
+        <span class="btn-icon">⚡</span>
+        <span>Generate Answer</span>
+      </button>
+      <div class="sc-footer-info">
+        <span class="sc-status-dot"></span>
+        <span id="sc-provider-name">Ready</span>
+      </div>
+    </div>
+
+    <!-- Resize Handle -->
+    <div id="sc-resize-handle" class="sc-resize-handle"></div>
+  </div>
+
+</body>
+
+</html>
