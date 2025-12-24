@@ -1,6 +1,8 @@
 /* src/content/sidebar.js */
 
 const Sidebar = {
+  isHidden: false, // Stealth mode flag
+
   init() {
     // Load the HTML for the sidebar
     const url = chrome.runtime.getURL('src/content/sidebar.html');
@@ -12,8 +14,95 @@ const Sidebar = {
         this.makeWidgetDraggable();
         this.makeLauncherDraggable();
         this.loadPosition();
+        this.setupStealthMode();
       });
   },
+
+  // Setup stealth mode - hide when screen sharing
+  setupStealthMode() {
+    const widget = document.getElementById('sc-widget');
+    const launcher = document.getElementById('sc-launcher');
+
+    // Keyboard shortcut: Escape to hide/show
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.toggleStealth();
+      }
+    });
+
+    // Double-click launcher to toggle stealth
+    launcher.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.toggleStealth();
+    });
+
+    // Detect screen sharing by watching for Google Meet's presentation mode
+    const observer = new MutationObserver(() => {
+      this.checkScreenSharing();
+    });
+
+    // Observe body for screen share UI changes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true
+    });
+
+    // Initial check
+    setTimeout(() => this.checkScreenSharing(), 2000);
+  },
+
+  checkScreenSharing() {
+    // Detect if user is presenting (Google Meet specific selectors)
+    const isPresentingIndicators = [
+      '[data-is-presenting="true"]',
+      '[aria-label*="presenting"]',
+      '[aria-label*="Stop sharing"]',
+      '[aria-label*="You are presenting"]',
+      '.screen-share-active'
+    ];
+
+    const isPresenting = isPresentingIndicators.some(selector =>
+      document.querySelector(selector) !== null
+    );
+
+    // Auto-hide when presenting
+    if (isPresenting && !this.isHidden) {
+      this.enableStealth();
+    }
+  },
+
+  toggleStealth() {
+    if (this.isHidden) {
+      this.disableStealth();
+    } else {
+      this.enableStealth();
+    }
+  },
+
+  enableStealth() {
+    const widget = document.getElementById('sc-widget');
+    const launcher = document.getElementById('sc-launcher');
+
+    widget.style.display = 'none';
+    launcher.style.display = 'none';
+    this.isHidden = true;
+
+    console.log('🙈 Stealth mode ON - Press Escape to show');
+  },
+
+  disableStealth() {
+    const widget = document.getElementById('sc-widget');
+    const launcher = document.getElementById('sc-launcher');
+
+    launcher.style.display = 'flex';
+    // Widget stays hidden until clicked
+    this.isHidden = false;
+
+    console.log('👁️ Stealth mode OFF');
+  },
+
 
   // Save widget position to storage
   savePosition() {
