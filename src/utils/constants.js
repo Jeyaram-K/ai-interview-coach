@@ -1,5 +1,5 @@
 const CONSTANTS = {
-  DEFAULT_PROMPT: "You are an expert sales coach. Give me a short, punchy answer to the client's last objection or question. Focus on value and closing.",
+  DEFAULT_PROMPT: "Answer interview questions naturally. Use knowledge base first. Keep answers short, honest, and practical.",
   DEFAULT_TONE: "Direct",
   DEFAULT_PROVIDER: "pollinations",
   MAX_CONTEXT_CHARS: 2000,
