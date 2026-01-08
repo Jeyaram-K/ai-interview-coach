@@ -59,6 +59,11 @@ class EmbeddingSettings(BaseModel):
     provider: str  # "ollama" or "google"
     google_api_key: Optional[str] = None
 
+class DatabaseSettings(BaseModel):
+    provider: str  # "postgresql" or "supabase"
+    supabase_url: Optional[str] = None
+    supabase_key: Optional[str] = None
+
 # Utility functions
 def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> List[str]:
     """Split text into overlapping chunks"""
@@ -141,10 +146,12 @@ async def health():
     """Health check with stats"""
     try:
         count = database.get_document_count()
+        db_settings = database.get_database_settings()
         return {
             "status": "healthy", 
             "documents": count,
             "embedding_provider": EMBEDDING_CONFIG["provider"],
+            "database_provider": db_settings["provider"],
             "google_available": GOOGLE_AVAILABLE
         }
     except Exception as e:
@@ -181,6 +188,44 @@ async def set_embedding_settings(settings: EmbeddingSettings):
         "provider": EMBEDDING_CONFIG["provider"],
         "google_configured": bool(EMBEDDING_CONFIG["google_api_key"])
     }
+
+# Database Settings Endpoints
+@app.get("/settings/database")
+async def get_database_settings():
+    """Get current database settings"""
+    return database.get_database_settings()
+
+@app.post("/settings/database")
+async def set_database_settings(settings: DatabaseSettings):
+    """Update database settings"""
+    try:
+        result = database.set_database_settings(
+            provider=settings.provider,
+            supabase_url=settings.supabase_url,
+            supabase_key=settings.supabase_key
+        )
+        
+        # Test the connection
+        test_result = database.test_connection()
+        
+        if test_result["success"]:
+            # Try to initialize the database
+            database.init_database()
+        
+        return {
+            "success": True,
+            **result,
+            "connection_test": test_result
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@app.get("/settings/database/test")
+async def test_database_connection():
+    """Test current database connection"""
+    return database.test_connection()
 
 @app.post("/documents")
 async def add_document(doc: DocumentInput):

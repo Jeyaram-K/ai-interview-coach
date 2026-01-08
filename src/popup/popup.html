@@ -139,6 +139,32 @@
       </div>
 
       <div class="form-group">
+        <label>Database</label>
+        <div class="select-wrapper">
+          <select id="databaseProvider">
+            <option value="postgresql">🖥️ PostgreSQL (Local)</option>
+            <option value="supabase">☁️ Supabase (Cloud)</option>
+          </select>
+          <span class="select-arrow">▼</span>
+        </div>
+      </div>
+
+      <div id="supabaseSection" style="display: none;">
+        <div class="form-group">
+          <label>Supabase Project URL</label>
+          <input type="text" id="supabaseUrl" placeholder="https://xxxxx.supabase.co" />
+        </div>
+        <div class="form-group">
+          <label>Supabase API Key</label>
+          <div class="input-wrapper">
+            <input type="password" id="supabaseKey" placeholder="Enter your Supabase anon key..." />
+            <button type="button" id="toggleSupabaseKey" class="toggle-btn" title="Show/Hide">👁️</button>
+          </div>
+          <small class="hint">Find in Settings → API → anon public</small>
+        </div>
+      </div>
+
+      <div class="form-group">
         <label>Document Title</label>
         <input type="text" id="docTitle" placeholder="e.g., Product Pricing Guide" />
       </div>
