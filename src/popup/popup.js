@@ -33,12 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const googleApiKey = document.getElementById('googleApiKey');
   const toggleGoogleKey = document.getElementById('toggleGoogleKey');
 
-  // Database provider elements
-  const databaseProvider = document.getElementById('databaseProvider');
-  const supabaseSection = document.getElementById('supabaseSection');
-  const supabaseUrl = document.getElementById('supabaseUrl');
-  const supabaseKey = document.getElementById('supabaseKey');
-  const toggleSupabaseKey = document.getElementById('toggleSupabaseKey');
+
 
   // Load saved settings
   const settings = await StorageUtils.getSettings();
@@ -63,7 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   checkRagStatus();
   loadDocuments();
   loadEmbeddingSettings();
-  loadDatabaseSettings();
+
 
   // Provider change handler
   providerSelect.addEventListener('change', () => {
@@ -105,26 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await saveEmbeddingSettings();
   });
 
-  // Database Provider Toggle
-  databaseProvider.addEventListener('change', async () => {
-    updateSupabaseVisibility();
-    await saveDatabaseSettings();
-  });
 
-  // Toggle Supabase API key visibility
-  toggleSupabaseKey.addEventListener('click', () => {
-    const isPassword = supabaseKey.type === 'password';
-    supabaseKey.type = isPassword ? 'text' : 'password';
-    toggleSupabaseKey.textContent = isPassword ? '🙈' : '👁️';
-  });
-
-  // Save Supabase settings on blur
-  supabaseUrl.addEventListener('blur', async () => {
-    await saveDatabaseSettings();
-  });
-  supabaseKey.addEventListener('blur', async () => {
-    await saveDatabaseSettings();
-  });
 
   // File Upload Button
   uploadBtn.addEventListener('click', () => {
@@ -323,71 +299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Show/hide Supabase section based on selected provider
-  function updateSupabaseVisibility() {
-    if (databaseProvider.value === 'supabase') {
-      supabaseSection.style.display = 'block';
-    } else {
-      supabaseSection.style.display = 'none';
-    }
-  }
 
-  // Load database settings from server
-  async function loadDatabaseSettings() {
-    try {
-      const response = await fetch('http://localhost:8000/settings/database');
-      if (response.ok) {
-        const data = await response.json();
-        databaseProvider.value = data.provider || 'postgresql';
-        updateSupabaseVisibility();
-
-        // Load Supabase credentials from local storage
-        const stored = await chrome.storage.local.get(['supabaseUrl', 'supabaseKey']);
-        if (stored.supabaseUrl) supabaseUrl.value = stored.supabaseUrl;
-        if (stored.supabaseKey) supabaseKey.value = stored.supabaseKey;
-      }
-    } catch (err) {
-      console.log('Could not load database settings:', err);
-    }
-  }
-
-  // Save database settings to server
-  async function saveDatabaseSettings() {
-    try {
-      const url = supabaseUrl.value.trim();
-      const key = supabaseKey.value.trim();
-
-      // Save to local storage
-      await chrome.storage.local.set({ supabaseUrl: url, supabaseKey: key });
-
-      // Send settings to server
-      const response = await fetch('http://localhost:8000/settings/database', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider: databaseProvider.value,
-          supabase_url: url,
-          supabase_key: key
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.connection_test && data.connection_test.success) {
-          showStatus(`✅ Database: ${databaseProvider.value} connected`, 'success');
-        } else {
-          showStatus(`⚠️ Database set to ${databaseProvider.value} (connection pending)`, 'warning');
-        }
-        setTimeout(hideStatus, 3000);
-        checkRagStatus();
-      } else {
-        const err = await response.json();
-        showStatus(`❌ ${err.detail || 'Failed to save database settings'}`, 'error');
-      }
-    } catch (err) {
-      showStatus(`❌ Failed to save database settings`, 'error');
-    }
-  }
 
   async function checkRagStatus() {
     try {

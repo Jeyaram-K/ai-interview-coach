@@ -1,6 +1,5 @@
 """
 Database utilities for RAG vector storage with PostgreSQL + pgvector
-Supports local PostgreSQL and Supabase cloud
 """
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -10,94 +9,29 @@ import os
 
 # Database configuration - stored in memory (can be updated via API)
 DATABASE_CONFIG = {
-    "provider": os.getenv("DB_PROVIDER", "postgresql"),  # "postgresql" or "supabase"
-    
     # PostgreSQL local settings
-    "postgresql": {
-        "host": os.getenv("DB_HOST", "localhost"),
-        "port": os.getenv("DB_PORT", "5432"),
-        "database": os.getenv("DB_NAME", "salescoach_rag"),
-        "user": os.getenv("DB_USER", "postgres"),
-        "password": os.getenv("DB_PASSWORD", "postgres")
-    },
-    
-    # Supabase cloud settings
-    "supabase": {
-        "url": os.getenv("SUPABASE_URL", ""),
-        "key": os.getenv("SUPABASE_KEY", ""),
-        "host": "",  # Extracted from URL
-        "port": "5432",
-        "database": "postgres",
-        "user": "postgres",
-        "password": ""  # Service role key
-    }
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": os.getenv("DB_PORT", "5432"),
+    "database": os.getenv("DB_NAME", "salescoach_rag"),
+    "user": os.getenv("DB_USER", "postgres"),
+    "password": os.getenv("DB_PASSWORD", "postgres")
 }
 
 def get_database_settings():
     """Get current database settings"""
-    provider = DATABASE_CONFIG["provider"]
     return {
-        "provider": provider,
-        "postgresql_configured": bool(DATABASE_CONFIG["postgresql"]["host"]),
-        "supabase_configured": bool(DATABASE_CONFIG["supabase"]["url"] and DATABASE_CONFIG["supabase"]["key"])
+        "provider": "postgresql",
+        "postgresql_configured": bool(DATABASE_CONFIG["host"])
     }
 
-def set_database_settings(provider: str, supabase_url: str = None, supabase_key: str = None):
-    """Update database settings"""
-    if provider not in ["postgresql", "supabase"]:
-        raise ValueError("Invalid provider. Use 'postgresql' or 'supabase'")
-    
-    DATABASE_CONFIG["provider"] = provider
-    
-    if supabase_url:
-        DATABASE_CONFIG["supabase"]["url"] = supabase_url
-        # Extract host from URL (e.g., https://xxx.supabase.co -> db.xxx.supabase.co)
-        if "supabase.co" in supabase_url:
-            project_ref = supabase_url.replace("https://", "").replace(".supabase.co", "")
-            DATABASE_CONFIG["supabase"]["host"] = f"db.{project_ref}.supabase.co"
-    
-    if supabase_key:
-        DATABASE_CONFIG["supabase"]["key"] = supabase_key
-        DATABASE_CONFIG["supabase"]["password"] = supabase_key
-    
-    return get_database_settings()
-
 def get_connection():
-    """Get database connection with pgvector support based on current provider"""
-    provider = DATABASE_CONFIG["provider"]
-    
-    if provider == "supabase":
-        return get_supabase_connection()
-    else:
-        return get_postgresql_connection()
-
-def get_postgresql_connection():
-    """Get local PostgreSQL connection"""
-    config = DATABASE_CONFIG["postgresql"]
+    """Get database connection with pgvector support"""
     conn = psycopg2.connect(
-        host=config["host"],
-        port=config["port"],
-        database=config["database"],
-        user=config["user"],
-        password=config["password"]
-    )
-    register_vector(conn)
-    return conn
-
-def get_supabase_connection():
-    """Get Supabase PostgreSQL connection"""
-    config = DATABASE_CONFIG["supabase"]
-    
-    if not config["host"] or not config["password"]:
-        raise Exception("Supabase not configured. Please set URL and API key.")
-    
-    conn = psycopg2.connect(
-        host=config["host"],
-        port=config["port"],
-        database=config["database"],
-        user=config["user"],
-        password=config["password"],
-        sslmode="require"  # Supabase requires SSL
+        host=DATABASE_CONFIG["host"],
+        port=DATABASE_CONFIG["port"],
+        database=DATABASE_CONFIG["database"],
+        user=DATABASE_CONFIG["user"],
+        password=DATABASE_CONFIG["password"]
     )
     register_vector(conn)
     return conn
@@ -137,7 +71,7 @@ def init_database():
         conn.commit()
         cur.close()
         conn.close()
-        print(f"✅ Database initialized successfully ({DATABASE_CONFIG['provider']})")
+        print("✅ Database initialized successfully (postgresql)")
         return True
     except Exception as e:
         print(f"⚠️ Database init error: {e}")
@@ -236,6 +170,6 @@ def test_connection() -> dict:
         cur.execute("SELECT 1")
         cur.close()
         conn.close()
-        return {"success": True, "provider": DATABASE_CONFIG["provider"]}
+        return {"success": True, "provider": "postgresql"}
     except Exception as e:
-        return {"success": False, "error": str(e), "provider": DATABASE_CONFIG["provider"]}
+        return {"success": False, "error": str(e), "provider": "postgresql"}
