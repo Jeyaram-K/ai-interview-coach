@@ -33,14 +33,26 @@ cd ai-interview-coach
 4. Select the ai-interview-coach folder
 ```
 
-### 2. Setup RAG Server (Optional)
+### 2. Install PostgreSQL & pgvector (Windows)
+
+1. **Download PostgreSQL 18:**  
+   [postgresql-18.1-2-windows-x64.exe](https://get.enterprisedb.com/postgresql/postgresql-18.1-2-windows-x64.exe)
+
+2. **Download pgvector extension:**  
+   [vector.v0.8.1-pg18.zip](https://github.com/pgvector/pgvector/releases)
+   - Extract the zip
+   - Copy files to PostgreSQL installation directory:
+     - `vector.dll` → `C:\Program Files\PostgreSQL\18\lib\`
+     - `vector.control` and `vector--*.sql` → `C:\Program Files\PostgreSQL\18\share\extension\`
+
+### 3. Setup RAG Server
 ```bash
-# Install Ollama
+# Install Ollama (for local embeddings)
 ollama pull nomic-embed-text
 
-# Setup PostgreSQL with pgvector
-psql -u postgres -c "CREATE DATABASE salescoach_rag;"
-psql -u postgres -d salescoach_rag -c "CREATE EXTENSION vector;"
+# Create database with pgvector
+psql -U postgres -c "CREATE DATABASE salescoach_rag;"
+psql -U postgres -d salescoach_rag -c "CREATE EXTENSION vector;"
 
 # Start server
 cd server
@@ -48,7 +60,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-### 3. Configure
+### 4. Configure
 1. Click the extension icon
 2. Select AI provider (Pollinations is FREE)
 3. Add API key if needed
