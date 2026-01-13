@@ -233,16 +233,20 @@ async function handleTestConnection(payload, sendResponse) {
 
 async function handleGenerateResponse(payload, sendResponse) {
   // 1. Get Settings
-  const settings = await chrome.storage.local.get(["apiKey", "prompt", "tone", "provider", "model", "ragEnabled"]);
-  const { apiKey, prompt, tone } = settings;
+  const settings = await chrome.storage.local.get(["apiKeys", "prompt", "tone", "provider", "model", "ragEnabled"]);
+  const { prompt, tone } = settings;
   const provider = settings.provider || "pollinations";
   const model = settings.model || PROVIDERS_CONFIG[provider]?.defaultModel || "openai";
   const providerConfig = PROVIDERS_CONFIG[provider];
   const ragEnabled = settings.ragEnabled !== false; // Default to true
 
+  // Get API key for the selected provider
+  const apiKeys = settings.apiKeys || {};
+  const apiKey = apiKeys[provider] || "";
+
   // Check API key only for providers that require it
   if (providerConfig.requiresKey && !apiKey) {
-    sendResponse({ error: "No API Key found. Please open extension settings." });
+    sendResponse({ error: `No API Key found for ${providerConfig.name}. Please open extension settings.` });
     return;
   }
 

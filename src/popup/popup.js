@@ -92,11 +92,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
   // Provider change handler
-  providerSelect.addEventListener('change', () => {
+  providerSelect.addEventListener('change', async () => {
     const selectedProvider = providerSelect.value;
     const providerConfig = CONSTANTS.PROVIDERS[selectedProvider];
     updateModelOptions(selectedProvider, providerConfig.defaultModel);
     updateKeyVisibility(selectedProvider);
+
+    // Load saved API key for this provider
+    const savedKey = await StorageUtils.getApiKeyForProvider(selectedProvider);
+    apiKeyInput.value = savedKey;
+
     hideStatus();
     updateConnectionIndicator('ready');
   });
