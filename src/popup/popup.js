@@ -33,7 +33,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   const googleApiKey = document.getElementById('googleApiKey');
   const toggleGoogleKey = document.getElementById('toggleGoogleKey');
 
+  // Tab Elements
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const tabPanels = document.querySelectorAll('.tab-panel');
 
+  // Tab Navigation
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetTab = btn.dataset.tab;
+
+      // Update active states
+      tabButtons.forEach(b => b.classList.remove('active'));
+      tabPanels.forEach(p => p.classList.remove('active'));
+
+      btn.classList.add('active');
+      document.getElementById(`${targetTab}-panel`).classList.add('active');
+
+      // Save active tab
+      chrome.storage.local.set({ activeTab: targetTab });
+    });
+  });
+
+  // Restore last active tab
+  const storedTab = await chrome.storage.local.get(['activeTab']);
+  if (storedTab.activeTab) {
+    const targetBtn = document.querySelector(`[data-tab="${storedTab.activeTab}"]`);
+    if (targetBtn) {
+      tabButtons.forEach(b => b.classList.remove('active'));
+      tabPanels.forEach(p => p.classList.remove('active'));
+      targetBtn.classList.add('active');
+      document.getElementById(`${storedTab.activeTab}-panel`).classList.add('active');
+    }
+  }
 
   // Load saved settings
   const settings = await StorageUtils.getSettings();
