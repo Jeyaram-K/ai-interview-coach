@@ -1,60 +1,49 @@
 /**
  * Cloud Database Service for AI Interview Coach
- * Provides Firestore operations for documents and settings sync
+ * Uses Firebase REST API directly (works in Chrome extension service workers)
  */
 
-import {
-    initFirebase,
-    isFirebaseConfigured,
-    db,
-    collection,
-    doc,
-    setDoc,
-    getDoc,
-    getDocs,
-    deleteDoc
-} from './firebase-config.js';
+// Import from centralized config
+import { FIREBASE_CONFIG } from '../config.js';
 
-const CloudDB = {
-    /**
-     * Check if cloud sync is available
-     */
-    async isAvailable() {
-        if (!isFirebaseConfigured()) return false;
-        const firebase = await initFirebase();
-        return firebase !== null;
-    },
+// Check if configured
+function isFirebaseConfigured() {
+    return FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
+}
 
-    /**
-     * Get user's document collection path
-     */
-    getUserDocPath() {
-        // Use a device-specific ID stored locally for anonymous sync
+// Firestore REST API base URL
+function getFirestoreUrl(path) {
+    return `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents/${path}`;
+}
+
+export const CloudDB = {
+    getCollectionPath() {
         return 'knowledge_base';
     },
 
-    // ==================== Document Operations ====================
-
-    /**
-     * Save a document to Firestore
-     */
     async saveDocument(title, content, chunks = []) {
+        if (!isFirebaseConfigured()) {
+            return { success: false, error: "Firebase not configured" };
+        }
         try {
-            const firebase = await initFirebase();
-            if (!firebase || !firebase.db) {
-                throw new Error("Firebase not initialized");
-            }
-
-            const docRef = doc(firebase.db, this.getUserDocPath(), title);
-            await setDoc(docRef, {
-                title,
-                content,
-                chunks,
-                chunkCount: chunks.length,
-                updatedAt: new Date().toISOString(),
-                createdAt: new Date().toISOString()
+            const docId = encodeURIComponent(title.replace(/[\/\.]/g, '_'));
+            const url = `${getFirestoreUrl(this.getCollectionPath())}/${docId}?key=${FIREBASE_CONFIG.apiKey}`;
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fields: {
+                        title: { stringValue: title },
+                        content: { stringValue: content },
+                        chunkCount: { integerValue: chunks.length.toString() },
+                        updatedAt: { stringValue: new Date().toISOString() }
+                    }
+                })
             });
-
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'Failed to save');
+            }
             return { success: true, chunks: chunks.length };
         } catch (error) {
             console.error("CloudDB saveDocument error:", error);
@@ -62,28 +51,29 @@ const CloudDB = {
         }
     },
 
-    /**
-     * Get all documents from Firestore
-     */
     async getDocuments() {
+        if (!isFirebaseConfigured()) {
+            return { success: false, error: "Firebase not configured", documents: [] };
+        }
         try {
-            const firebase = await initFirebase();
-            if (!firebase || !firebase.db) {
-                throw new Error("Firebase not initialized");
+            const url = `${getFirestoreUrl(this.getCollectionPath())}?key=${FIREBASE_CONFIG.apiKey}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'Failed to fetch');
             }
-
-            const querySnapshot = await getDocs(collection(firebase.db, this.getUserDocPath()));
+            const data = await response.json();
             const documents = [];
-
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                documents.push({
-                    title: data.title,
-                    chunks: data.chunkCount || data.chunks?.length || 0,
-                    updatedAt: data.updatedAt
+            if (data.documents) {
+                data.documents.forEach(doc => {
+                    const fields = doc.fields || {};
+                    documents.push({
+                        title: fields.title?.stringValue || 'Untitled',
+                        chunks: parseInt(fields.chunkCount?.integerValue || '0'),
+                        updatedAt: fields.updatedAt?.stringValue
+                    });
                 });
-            });
-
+            }
             return { success: true, documents };
         } catch (error) {
             console.error("CloudDB getDocuments error:", error);
@@ -91,41 +81,18 @@ const CloudDB = {
         }
     },
 
-    /**
-     * Get a specific document with full content
-     */
-    async getDocument(title) {
-        try {
-            const firebase = await initFirebase();
-            if (!firebase || !firebase.db) {
-                throw new Error("Firebase not initialized");
-            }
-
-            const docRef = doc(firebase.db, this.getUserDocPath(), title);
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                return { success: true, document: docSnap.data() };
-            } else {
-                return { success: false, error: "Document not found" };
-            }
-        } catch (error) {
-            console.error("CloudDB getDocument error:", error);
-            return { success: false, error: error.message };
-        }
-    },
-
-    /**
-     * Delete a document from Firestore
-     */
     async deleteDocument(title) {
+        if (!isFirebaseConfigured()) {
+            return { success: false, error: "Firebase not configured" };
+        }
         try {
-            const firebase = await initFirebase();
-            if (!firebase || !firebase.db) {
-                throw new Error("Firebase not initialized");
+            const docId = encodeURIComponent(title.replace(/[\/\.]/g, '_'));
+            const url = `${getFirestoreUrl(this.getCollectionPath())}/${docId}?key=${FIREBASE_CONFIG.apiKey}`;
+            const response = await fetch(url, { method: 'DELETE' });
+            if (!response.ok && response.status !== 404) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'Failed to delete');
             }
-
-            await deleteDoc(doc(firebase.db, this.getUserDocPath(), title));
             return { success: true };
         } catch (error) {
             console.error("CloudDB deleteDocument error:", error);
@@ -133,104 +100,18 @@ const CloudDB = {
         }
     },
 
-    /**
-     * Search documents (basic text search in titles)
-     */
-    async searchDocuments(query) {
-        try {
-            const result = await this.getDocuments();
-            if (!result.success) return result;
-
-            const searchLower = query.toLowerCase();
-            const matches = result.documents.filter(doc =>
-                doc.title.toLowerCase().includes(searchLower)
-            );
-
-            return { success: true, results: matches };
-        } catch (error) {
-            console.error("CloudDB searchDocuments error:", error);
-            return { success: false, error: error.message, results: [] };
-        }
-    },
-
-    // ==================== Settings Sync ====================
-
-    /**
-     * Sync settings to cloud
-     */
-    async syncSettings(settings) {
-        try {
-            const firebase = await initFirebase();
-            if (!firebase || !firebase.db) {
-                throw new Error("Firebase not initialized");
-            }
-
-            const docRef = doc(firebase.db, 'user_settings', 'config');
-            await setDoc(docRef, {
-                ...settings,
-                updatedAt: new Date().toISOString()
-            }, { merge: true });
-
-            return { success: true };
-        } catch (error) {
-            console.error("CloudDB syncSettings error:", error);
-            return { success: false, error: error.message };
-        }
-    },
-
-    /**
-     * Load settings from cloud
-     */
-    async loadSettings() {
-        try {
-            const firebase = await initFirebase();
-            if (!firebase || !firebase.db) {
-                throw new Error("Firebase not initialized");
-            }
-
-            const docRef = doc(firebase.db, 'user_settings', 'config');
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                return { success: true, settings: docSnap.data() };
-            } else {
-                return { success: true, settings: null };
-            }
-        } catch (error) {
-            console.error("CloudDB loadSettings error:", error);
-            return { success: false, error: error.message };
-        }
-    },
-
-    // ==================== Health Check ====================
-
-    /**
-     * Check cloud connection status
-     */
     async healthCheck() {
+        if (!isFirebaseConfigured()) {
+            return { success: false, status: "not_configured", message: "Firebase not configured" };
+        }
         try {
-            if (!isFirebaseConfigured()) {
-                return { success: false, status: "not_configured", message: "Firebase not configured" };
-            }
-
-            const firebase = await initFirebase();
-            if (!firebase) {
-                return { success: false, status: "init_failed", message: "Firebase init failed" };
-            }
-
-            // Try to read a test collection
             const result = await this.getDocuments();
-            return {
-                success: true,
-                status: "connected",
-                message: "Cloud connected",
-                documents: result.documents?.length || 0
-            };
+            if (result.success) {
+                return { success: true, status: "connected", message: "Cloud connected", documents: result.documents?.length || 0 };
+            }
+            return { success: false, status: "error", message: result.error };
         } catch (error) {
             return { success: false, status: "error", message: error.message };
         }
     }
 };
-
-// Export for use in other modules
-export { CloudDB };

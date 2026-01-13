@@ -1,12 +1,8 @@
 /* src/background/background.js */
 
-// RAG Configuration
-const RAG_CONFIG = {
-  SERVER_URL: "http://localhost:8000",
-  ENABLED: true,
-  TOP_K: 3,
-  MIN_SIMILARITY: 0.5
-};
+// Import centralized configuration
+import { FIREBASE_CONFIG, RAG_CONFIG } from '../config.js';
+import { CloudDB } from '../utils/cloud-db.js';
 
 // Provider configurations for background worker
 const PROVIDERS_CONFIG = {
@@ -111,12 +107,6 @@ async function handleAddDocument(payload, sendResponse) {
   if (storageMode === 'cloud') {
     // Use cloud storage (Firebase)
     try {
-      const CloudDB = await loadCloudDB();
-      if (!CloudDB) {
-        sendResponse({ success: false, error: "Cloud not configured. Check firebase-config.js" });
-        return;
-      }
-
       // Simple chunking for cloud storage
       const chunks = payload.content.match(/.{1,500}/g) || [];
       const result = await CloudDB.saveDocument(payload.title, payload.content, chunks);
@@ -161,11 +151,6 @@ async function handleGetDocuments(sendResponse) {
 
   if (storageMode === 'cloud') {
     try {
-      const CloudDB = await loadCloudDB();
-      if (!CloudDB) {
-        sendResponse({ success: false, error: "Cloud not configured", documents: [] });
-        return;
-      }
       const result = await CloudDB.getDocuments();
       sendResponse(result);
     } catch (err) {
@@ -189,11 +174,6 @@ async function handleDeleteDocument(payload, sendResponse) {
 
   if (storageMode === 'cloud') {
     try {
-      const CloudDB = await loadCloudDB();
-      if (!CloudDB) {
-        sendResponse({ success: false, error: "Cloud not configured" });
-        return;
-      }
       const result = await CloudDB.deleteDocument(payload.title);
       sendResponse(result);
     } catch (err) {
@@ -546,30 +526,10 @@ async function callGroq(apiKey, model, systemPrompt) {
 
 // ==================== Cloud Sync Functions ====================
 
-// Cloud sync configuration
-const CLOUD_CONFIG = {
-  FIREBASE_CONFIG_URL: chrome.runtime.getURL('src/utils/firebase-config.js')
-};
-
-// Dynamic import helper for ES modules
-async function loadCloudDB() {
-  try {
-    const module = await import(chrome.runtime.getURL('src/utils/cloud-db.js'));
-    return module.CloudDB;
-  } catch (err) {
-    console.log("CloudDB module not available:", err);
-    return null;
-  }
-}
+// CloudDB is imported from ../utils/cloud-db.js
 
 async function handleCloudHealth(sendResponse) {
   try {
-    const CloudDB = await loadCloudDB();
-    if (!CloudDB) {
-      sendResponse({ success: false, status: "not_configured", message: "Cloud module not loaded" });
-      return;
-    }
-
     const result = await CloudDB.healthCheck();
     sendResponse(result);
   } catch (err) {
@@ -579,12 +539,6 @@ async function handleCloudHealth(sendResponse) {
 
 async function handleCloudSyncAll(sendResponse) {
   try {
-    const CloudDB = await loadCloudDB();
-    if (!CloudDB) {
-      sendResponse({ success: false, error: "Cloud module not loaded" });
-      return;
-    }
-
     // Get documents from local RAG server
     let localDocs = [];
     try {
