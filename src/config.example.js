@@ -35,6 +35,8 @@ Object.freeze(CONFIG.firebase);
 Object.freeze(CONFIG.ragServer);
 Object.freeze(CONFIG.defaults);
 
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CONFIG;
-}
+// ES Module exports for Chrome extension
+export const FIREBASE_CONFIG = CONFIG.firebase;
+export const RAG_CONFIG = CONFIG.ragServer;
+export const DEFAULT_CONFIG = CONFIG.defaults;
+export default CONFIG;

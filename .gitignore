@@ -7,3 +7,6 @@ venv
 
 # configuration file
 src/config.js
+
+# uv lock file
+uv.lock
